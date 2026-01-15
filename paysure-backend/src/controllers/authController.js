@@ -1,24 +1,11 @@
 const jwt = require('jsonwebtoken');
 const { User, Wallet } = require('../models');
 const { body, validationResult } = require('express-validator');
-
-// In-memory OTP storage (use Redis in production)
-const otpStore = new Map();
-
-const generateOTP = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-};
-
-const sendOTP = async (phoneNumber, otp) => {
-  // Implement SMS sending logic here
-  console.log(`Sending OTP ${otp} to ${phoneNumber}`);
-  // For now, just log the OTP
-  return true;
-};
+const otpService = require('../services/otpService');
 
 const authController = {
-  // Send OTP
-  sendOTP: [
+  // Send Phone OTP
+  sendPhoneOTP: [
     body('phoneNumber').isMobilePhone().withMessage('Valid phone number is required'),
     
     async (req, res) => {
@@ -29,29 +16,44 @@ const authController = {
         }
 
         const { phoneNumber } = req.body;
-        const otp = generateOTP();
-        
-        // Store OTP with 5-minute expiry
-        otpStore.set(phoneNumber, {
-          otp,
-          expiresAt: Date.now() + 5 * 60 * 1000
-        });
-
-        await sendOTP(phoneNumber, otp);
+        const result = await otpService.sendPhoneOTP(phoneNumber);
 
         res.json({ 
           message: 'OTP sent successfully',
-          // Remove this in production
-          otp: process.env.NODE_ENV === 'development' ? otp : undefined
+          otp: result.otp
         });
       } catch (error) {
-        res.status(500).json({ error: 'Failed to send OTP' });
+        res.status(500).json({ error: error.message });
       }
     }
   ],
 
-  // Verify OTP and register/login
-  verifyOTP: [
+  // Send Email OTP
+  sendEmailOTP: [
+    body('email').isEmail().withMessage('Valid email is required'),
+    
+    async (req, res) => {
+      try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+          return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { email } = req.body;
+        const result = await otpService.sendEmailOTP(email);
+
+        res.json({ 
+          message: 'OTP sent successfully',
+          otp: result.otp
+        });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  ],
+
+  // Verify Phone OTP
+  verifyPhoneOTP: [
     body('phoneNumber').isMobilePhone().withMessage('Valid phone number is required'),
     body('otp').isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits'),
     
@@ -63,28 +65,15 @@ const authController = {
         }
 
         const { phoneNumber, otp } = req.body;
-        
-        const storedOTP = otpStore.get(phoneNumber);
-        if (!storedOTP || storedOTP.expiresAt < Date.now()) {
-          return res.status(400).json({ error: 'OTP expired or invalid' });
+        const verification = otpService.verifyOTP(phoneNumber, otp);
+
+        if (!verification.valid) {
+          return res.status(400).json({ error: verification.error });
         }
 
-        if (storedOTP.otp !== otp) {
-          return res.status(400).json({ error: 'Invalid OTP' });
-        }
-
-        // Remove used OTP
-        otpStore.delete(phoneNumber);
-
-        // Check if user exists
         let user = await User.findOne({ where: { phoneNumber } });
-        let isNewUser = false;
+        const isNewUser = !user;
 
-        if (!user) {
-          isNewUser = true;
-        }
-
-        // Generate JWT token
         const token = jwt.sign(
           { userId: user?.id || null, phoneNumber },
           process.env.JWT_SECRET,
@@ -101,6 +90,32 @@ const authController = {
             accountStatus: user.accountStatus
           } : null
         });
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to verify OTP' });
+      }
+    }
+  ],
+
+  // Verify Email OTP
+  verifyEmailOTP: [
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('otp').isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits'),
+    
+    async (req, res) => {
+      try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+          return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { email, otp } = req.body;
+        const verification = otpService.verifyOTP(email, otp);
+
+        if (!verification.valid) {
+          return res.status(400).json({ error: verification.error });
+        }
+
+        res.json({ message: 'Email verified successfully' });
       } catch (error) {
         res.status(500).json({ error: 'Failed to verify OTP' });
       }
