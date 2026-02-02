@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const depositRoutes = require('./routes/deposits');
 const walletRoutes = require('./routes/wallet');
 const apiRoutes = require('./routes/api');
+const statementRoutes = require('./routes/statements');
 const { generalLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
@@ -54,6 +55,7 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       deposits: '/api/deposits',
       wallet: '/api/wallet',
+      statements: '/api/statements',
       integration: '/api/v1'
     }
   });
@@ -62,6 +64,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/deposits', depositRoutes);
 app.use('/api/wallet', walletRoutes);
+app.use('/api/statements', statementRoutes);
 app.use('/api/v1', apiRoutes);
 
 // 404 handler
