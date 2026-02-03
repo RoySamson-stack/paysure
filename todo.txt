@@ -1,0 +1,93 @@
+# PaySure MVP Development Breakdown
+
+## Project Architecture
+
+**Frontend:** React Native for cross-platform mobile app supporting both Android and iOS from a single codebase.
+
+**Backend:** Node.js with Express for API server handling all business logic, payment processing, and data management.
+
+**Database:** PostgreSQL for reliable transactional data storage with proper ACID compliance needed for financial operations.
+
+**Payment Gateway:** M-Pesa Daraja API for STK Push integration enabling seamless mobile money deposits.
+
+**Hosting:** AWS or GCP for scalable cloud infrastructure with proper security and uptime guarantees.
+
+**Authentication:** JWT tokens for secure session management with phone number and OTP verification.
+
+## Database Schema Design
+
+You need these core tables to make everything work properly. The User table stores phone number, full name, ID number, business category, consent flags for data sharing, daily deposit target, monthly salary goal, salary payout date, consistency score, account status, and timestamps. The Deposit table tracks user reference, amount, transaction date and time, payment channel, M-Pesa transaction reference, transaction status, and creation timestamp. The Wallet table maintains three logical wallet types for each user including deposit wallet balance, salary wallet balance, and buffer wallet balance with last updated timestamps. The Salary Payout table records user reference, payout month and year, expected salary amount, actual paid amount, payout date, payout status, and transaction reference. The Transaction Log table captures comprehensive audit trail with user reference, transaction type, amount, wallet affected, previous balance, new balance, reference ID, and timestamp. The Admin User table manages admin accounts with username, hashed password, role, permissions, and access logs.
+
+## Backend API Structure
+
+Your Node.js backend needs these endpoint groups organized logically. Authentication endpoints handle user registration with phone and OTP, OTP verification and token generation, login with existing credentials, and token refresh for session management. User Profile endpoints manage getting user profile data, updating user information, setting up salary configuration, and retrieving user settings. Deposit endpoints process M-Pesa STK Push initiation, handle M-Pesa callback confirmation, fetch deposit history, and get deposit statistics. Wallet endpoints retrieve all wallet balances, get transaction history filtered by wallet type, and calculate available funds. Salary endpoints calculate expected salary based on deposits, process automatic monthly salary payouts, retrieve salary history, and get upcoming payout information. Analytics endpoints generate consistency scores, provide behavioral insights, track deposit patterns, and create month over month comparisons. Reporting endpoints generate PDF income reports, export CSV data, create bank ready summaries, and compile user behavior reports. Notification endpoints send SMS reminders, create in app notifications, send payout confirmations, and deliver motivational messages. Admin endpoints manage user listing and search, user account suspension or activation, manual payout adjustments, transaction monitoring, and report generation.
+
+## M-Pesa Integration Flow
+
+The deposit process works through several connected steps. When a user initiates a deposit, your app calls your backend API with the amount. Your backend validates the request and initiates an M-Pesa STK Push through Daraja API. M-Pesa sends a push notification to the user's phone for PIN entry. The user enters their M-Pesa PIN to confirm. M-Pesa processes the payment and sends a callback to your backend. Your backend receives the callback, validates the transaction, updates the deposit wallet balance, logs the transaction, updates user statistics, and sends confirmation notification to the user.
+
+## Wallet Logic Implementation
+
+The three wallet system must work as distinct logical entities even if stored in one database table. Deposit Wallet receives all incoming M-Pesa deposits, remains locked with no withdrawal functionality, and accumulates throughout the month until salary calculation. Salary Wallet receives the calculated monthly salary amount on payout date, locks until the specified payout date, automatically transfers to user's M-Pesa on payout day, and resets to zero after successful payout. Buffer Wallet holds any excess deposits beyond the salary target, can roll forward to next month, may be used to supplement next month's salary if deposits fall short, and provides cushion for irregular income months.
+
+## Salary Calculation Engine
+
+This is the most critical component requiring careful implementation. At the end of each month or on the user's specified payout date, the system calculates total deposits for the month, compares against user's salary goal, determines salary amount as the minimum of total deposits and salary target, transfers calculated amount from deposit wallet to salary wallet, moves any excess to buffer wallet, and triggers automatic M-Pesa payout. The payout process initiates B2C M-Pesa transfer from your business account to user, handles the M-Pesa callback confirmation, updates salary wallet to zero, logs the transaction with full audit trail, updates user's salary history, calculates and updates consistency score, and sends SMS and in app confirmation.
+
+## Consistency Score Algorithm
+
+The scoring system evaluates user behavior across multiple dimensions. Deposit frequency score gives full points for daily deposits, partial points for 20 plus days per month, and reduced points for under 15 days. Deposit amount consistency measures variance from daily target with lower variance scoring higher and high volatility reducing score. Monthly completion rate tracks percentage of salary goal achieved with 100 percent achievement maximizing score and partial achievement proportionally scoring. Streak tracking rewards consecutive deposit days and penalizes gaps. The final consistency score combines these factors into a 0 to 100 scale that updates after each deposit and recalculates monthly.
+
+## User Interface Screens
+
+Your React Native app needs these core screens organized for optimal user flow. The Splash Screen displays PaySure branding with smooth transition to authentication. The Phone Number Entry screen has a simple input field, sends OTP button, and clear error messaging. The OTP Verification screen shows a 6 digit input, resend OTP option, countdown timer, and automatic verification on completion. The Onboarding screens collect full name, ID number, business category selection, and consent checkbox with plain language explanation of data sharing. The Salary Setup screen is mandatory before proceeding and includes daily deposit target input, monthly salary goal input, payout date picker, visual preview of the plan, and confirmation button. The Main Dashboard shows next salary date prominently, expected salary amount in large text, countdown to payday, monthly progress bar with percentage, current month deposits total, consistency indicator with encouraging message, and quick deposit button. The Deposit Screen has amount input field, daily target reference, STK Push trigger button, recent deposits list, and transaction status indicators. The Wallet View displays three wallet sections clearly separated showing deposit wallet locked status, salary wallet with payout date, buffer wallet with rollover info, and total balance summary. The Salary History screen lists past salary payouts with dates, shows deposit vs payout comparison, displays consistency score trend, and has download report button. The Profile Settings screen manages user information updates, salary goal adjustments, payout date changes, notification preferences, and consent management. The Notifications Screen shows all in app messages, deposit reminders, payout confirmations, encouragement messages, and system alerts.
+
+## Admin Panel Screens
+
+Build a separate web based admin interface using React. The Admin Dashboard displays total users count, active users metric, total deposits processed, upcoming payouts list, failed transactions alert, and system health status. The User Management screen provides searchable user list, user detail view, account status toggle, salary configuration view, transaction history access, and manual intervention options. The Transaction Monitor shows real time deposit feed, failed transaction list, pending M-Pesa callbacks, payout queue, and retry mechanisms. The Reports Dashboard generates income reports by user, deposits analytics by period, consistency score distributions, payout success rates, and system performance metrics. The Settings Panel manages admin user accounts, role and permission configuration, M-Pesa API credentials, notification templates, and system parameters.
+
+## Notification System
+
+Implement a robust notification system with multiple channels. SMS notifications go out for daily deposit reminders at user preferred time, salary payout confirmations immediately after successful transfer, encouragement after 2 days of missed deposits, and critical system alerts. In app notifications handle deposit confirmations, milestone achievements, consistency score updates, upcoming payout reminders, and promotional messages. Push notifications serve as backup for critical messages, remind users of pending actions, and announce new features.
+
+## Security Implementation
+
+Your security layer must be comprehensive and non negotiable. User authentication uses phone number and OTP for registration, JWT tokens with short expiration, refresh token mechanism, and rate limiting on auth endpoints. Data encryption applies AES 256 for sensitive data at rest, TLS for all data in transit, encrypted M-Pesa credentials, and hashed admin passwords using bcrypt. API security implements JWT validation on protected routes, role based access control, request rate limiting, input validation and sanitization, and SQL injection prevention. Payment security maintains separate custodial account for user funds, complete audit logs for all fund movements, two factor authentication for admin fund operations, and automated reconciliation checks. Database security uses parameterized queries exclusively, principle of least privilege for database users, regular automated backups, and encrypted backup storage.
+
+## Audit Logging
+
+Every financial operation must be logged completely. Transaction logs capture user ID, transaction type, amount involved, source and destination wallets, previous and new balances, M-Pesa reference numbers, timestamps, and status. Admin action logs record admin user performing action, action type executed, affected user, changes made, reason provided, and timestamp. System logs track API requests and responses, M-Pesa callback payloads, failed operations with error details, scheduled job executions, and security events.
+
+## Behavioral Analytics Implementation
+
+The analytics engine runs in the background tracking user patterns. Daily analysis calculates deposits made today, compares against target, updates running total, recalculates consistency score, and triggers appropriate notifications. Weekly analysis identifies deposit patterns, detects declining activity, generates encouraging messages, and suggests salary adjustments if needed. Monthly analysis finalizes consistency score, prepares salary calculation, generates behavioral summary, and creates income report data. The system stores historical metrics for trend analysis, maintains rolling averages, flags anomalous behavior, and provides predictive insights.
+
+## Report Generation
+
+Bank ready reports must present data clearly and professionally. The income report includes user basic information, salary history table showing 6 months minimum, total deposits per month, actual salary paid, consistency percentage, behavioral summary paragraph, deposit frequency chart, and trend analysis. PDF generation uses a library like PDFKit for Node.js, applies professional template, includes PaySure branding, adds digital signature or verification code, and ensures print ready formatting. CSV export provides raw data for bank analysis, includes all relevant fields, maintains proper formatting, and supports bulk downloads for admin.
+
+## Background Jobs
+
+Set up scheduled tasks using node cron or similar. Daily jobs send deposit reminders at user specified times, process any pending transactions, update daily statistics, clean up expired OTP codes, and generate daily reports. Monthly jobs calculate all salary payouts, initiate M-Pesa transfers, update consistency scores, generate monthly reports, archive old data, and send monthly summaries. The system monitors job execution, logs all job runs, handles failures gracefully, implements retry logic, and alerts admin on critical failures.
+
+## Error Handling
+
+Comprehensive error handling prevents user frustration and data loss. M-Pesa errors handle timeout scenarios, insufficient balance messages, invalid phone numbers, duplicate transactions, and callback failures with proper user communication. Database errors implement transaction rollbacks, connection pool management, deadlock handling, and data integrity checks. API errors return consistent error format, appropriate HTTP status codes, user friendly messages, detailed logs for debugging, and never expose sensitive information. The system implements global error boundaries, graceful degradation, user friendly error screens, retry mechanisms where appropriate, and comprehensive error logging.
+
+## Testing Strategy
+
+Test everything thoroughly before launch. Unit tests cover all business logic functions, wallet calculations, consistency score algorithm, salary calculation engine, and utility functions. Integration tests verify M-Pesa integration flow, database operations, authentication flow, API endpoints, and wallet transactions. End to end tests simulate complete user journeys from signup through first salary payout, multiple deposit scenarios, edge cases like missed deposits, and admin interventions. Load testing ensures system handles concurrent deposits, multiple simultaneous payouts, high traffic periods, and database performance under load.
+
+## Development Workflow
+
+Structure your development process efficiently. Set up your development environment with Node.js and npm, PostgreSQL database, React Native CLI, M-Pesa sandbox credentials, and Git for version control. Build the backend first starting with database schema, authentication endpoints, M-Pesa integration, wallet logic, salary engine, analytics functions, and admin endpoints. Develop the mobile app beginning with navigation structure, authentication screens, onboarding flow, main dashboard, deposit functionality, wallet views, and remaining screens. Create the admin panel with user management, transaction monitoring, report generation, and settings. Integrate everything ensuring backend and mobile app communication, M-Pesa live integration, notification system, and report generation. Test thoroughly using sandbox environment, real device testing, edge case scenarios, and load testing. Deploy to production setting up cloud hosting, database migration, M-Pesa production credentials, monitoring systems, and backup procedures.
+
+## Critical Implementation Notes
+
+Several points require special attention. The salary language must always say salary paid or salary transferred, never use withdraw or cash out terminology, avoid savings language, and maintain the mental model of earned salary. Wallet logic must strictly enforce no withdrawal from deposit wallet, automatic salary transfer only, buffer wallet flexibility, and complete transaction atomicity. M-Pesa integration requires robust callback handling, idempotent transaction processing, proper timeout management, comprehensive error logging, and reconciliation processes. Consistency scoring needs fair algorithm weighting, regular recalculation, transparent communication to users, and use as encouragement not punishment. Admin controls must prevent fund misuse, require authentication for sensitive actions, maintain complete audit trails, and implement maker checker for large operations. User experience should remain extremely simple, provide clear feedback on all actions, use motivational language, minimize steps to deposit, and make progress visible.
+
+## Pre-Launch Checklist
+
+Before going live ensure all these items are complete. M-Pesa production credentials are configured and tested. Database is properly indexed for performance. All security measures are implemented and verified. Backup and recovery procedures are tested. Monitoring and alerting systems are active. Admin panel is fully functional and secured. User documentation and help content is ready. Terms of service and privacy policy are finalized. Customer support channels are established. Compliance requirements are met. Load testing confirms system can handle expected traffic. All critical bugs are resolved. Rollback plan is prepared in case of issues.
+
+This breakdown covers everything needed to build a fully functional PaySure MVP. Focus on getting the core salary logic working perfectly first, then add features progressively. The system must handle money correctly before anything else matters. Build it systematically, test thoroughly, and launch confidently.
