@@ -616,10 +616,70 @@ footer {
         margin-bottom: 2rem;
     }
     
+    /* Phone mockup - dynamic mobile sizing */
     .phone-mockup {
-        width: 250px;
-        height: 500px;
+        width: min(280px, 70vw);
+        height: auto;
+        aspect-ratio: 9/16;
         margin: 0 auto;
+        transform: none;
+        perspective: none;
+    }
+    
+    .phone-frame {
+        border-radius: min(25px, 4vw);
+        padding: min(8px, 2vw);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    }
+        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+    
+    .phone-frame::before {
+        width: 40px;
+        height: 4px;
+        top: 12px;
+    }
+    
+    .screen {
+        border-radius: min(20px, 3vw);
+    }
+    
+    .status-bar {
+        padding: 8px 12px 6px;
+        font-size: 11px;
+    }
+    
+    .app-content {
+        padding: 15px;
+    }
+    
+    .app-header h2 {
+        font-size: 18px;
+        margin-bottom: 8px;
+    }
+    
+    .balance-card {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .balance-amount {
+        font-size: 20px;
+        margin-bottom: 4px;
+    }
+    
+    .balance-label {
+        font-size: 11px;
+    }
+    
+    .action-buttons {
+        gap: 8px;
+    }
+    
+    .action-btn {
+        padding: 8px 12px;
+        font-size: 11px;
+        border-radius: 15px;
     }
     
     /* Buttons */
@@ -706,8 +766,8 @@ footer {
     }
     
     .phone-mockup {
-        width: 200px;
-        height: 400px;
+        width: min(240px, 85vw);
+        aspect-ratio: 9/16;
     }
     
     .features,
