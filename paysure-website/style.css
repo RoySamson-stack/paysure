@@ -603,6 +603,22 @@ footer {
         text-align: center;
         gap: 2rem;
         max-width: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .hero-text {
+        order: 1;
+    }
+    
+    .phone-mockup {
+        order: 2;
+        width: min(280px, 70vw);
+        height: auto;
+        aspect-ratio: 9/16;
+        margin: 2rem auto 0;
+        transform: none;
+        perspective: none;
     }
     
     .hero h1 {
@@ -615,22 +631,6 @@ footer {
         font-size: 1rem;
         margin-bottom: 2rem;
     }
-    
-    /* Phone mockup - dynamic mobile sizing */
-    .phone-mockup {
-        width: min(280px, 70vw);
-        height: auto;
-        aspect-ratio: 9/16;
-        margin: 0 auto;
-        transform: none;
-        perspective: none;
-    }
-    
-    .phone-frame {
-        border-radius: min(25px, 4vw);
-        padding: min(8px, 2vw);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.15);
-    }
         box-shadow: 0 8px 20px rgba(0,0,0,0.2);
     }
     
@@ -638,6 +638,12 @@ footer {
         width: 40px;
         height: 4px;
         top: 12px;
+    }
+    
+    .phone-frame {
+        border-radius: min(25px, 4vw);
+        padding: min(8px, 2vw);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.15);
     }
     
     .screen {
