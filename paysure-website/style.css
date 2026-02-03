@@ -612,13 +612,7 @@ footer {
     }
     
     .phone-mockup {
-        order: 2;
-        width: min(280px, 70vw);
-        height: auto;
-        aspect-ratio: 9/16;
-        margin: 2rem auto 0;
-        transform: none;
-        perspective: none;
+        display: none;
     }
     
     .hero h1 {
