@@ -785,3 +785,10 @@ footer {
         font-size: 0.9rem;
     }
 }
+.download-btn.pwa {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+}
+
+.download-btn.pwa:hover {
+    background: linear-gradient(135deg, #45a049, #3d8b40);
+}
