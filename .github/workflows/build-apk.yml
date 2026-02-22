@@ -1,0 +1,66 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ 'paysure-mobile/**' ]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: paysure-mobile/package-lock.json
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+
+      - name: Install npm dependencies
+        run: |
+          cd paysure-mobile
+          npm ci
+
+      - name: Prebuild Android
+        run: |
+          cd paysure-mobile
+          npx expo prebuild --platform android --clean
+
+      - name: Build Release APK
+        run: |
+          cd paysure-mobile/android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Sign APK
+        run: |
+          cd paysure-mobile/android/app/build/outputs/apk/release
+          cp app-release-unsigned.apk app-release.apk
+          # Use debug keystore for now
+          keytool -genkeypair -v -keystore debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Debug, OU=Debug, O=Debug, L=Debug, ST=Debug, C=US"
+          jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore debug.keystore -storepass android -keypass android app-release.apk androiddebugkey
+
+      - name: Copy APK to website
+        run: |
+          cp paysure-mobile/android/app/build/outputs/apk/release/app-release.apk paysure-website/m-salary-v1.0.0.apk
+
+      - name: Commit and push APK
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add paysure-website/m-salary-v1.0.0.apk
+          git commit -m "Build APK from GitHub Actions" || echo "No changes to commit"
+          git push
+
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: paysure-mobile/android/app/build/outputs/apk/release/app-release.apk
