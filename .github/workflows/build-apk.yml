@@ -13,14 +13,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: false
-          fetch-depth: 1
+          path: main
 
-      - name: Fix git submodule issue
+      - name: Move files
         run: |
-          rm -rf paysure-mobile/.git
-          git add paysure-mobile
-          git reset --soft HEAD~1 || true
+          mv main/paysure-mobile .
+          mv main/paysure-website .
+          rm -rf main
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -64,9 +63,13 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add paysure-website/m-salary-v1.0.0.apk
-          git commit -m "Build APK from GitHub Actions" || echo "No changes to commit"
-          git push
+          git add paysure-website/m-salary-v1.0.0.apk || true
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Build APK from GitHub Actions"
+            git push
+          fi
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
